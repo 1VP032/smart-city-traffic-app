@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -21,9 +20,17 @@ def load_data(file):
     df["hour"] = df["DateTime"].dt.hour
     df["day_of_week"] = df["DateTime"].dt.dayofweek
     df["is_weekend"] = df["day_of_week"].apply(lambda x: 1 if x >= 5 else 0)
-    df["is_holiday"] = df["DateTime"].dt.date.astype(str).isin([
+    df["is_holiday"] = df["DateTime"].dt.date.astype(str).isin([  # Example holiday dates
         "2015-10-02", "2015-12-25", "2016-01-01", "2016-08-15", "2016-10-02"
     ]).astype(int)
+    
+    # Ensure "Vehicles" exists and is numeric
+    if "Vehicles" not in df.columns:
+        raise ValueError("The 'Vehicles' column is missing in the dataset.")
+    df["Vehicles"] = pd.to_numeric(df["Vehicles"], errors="coerce")  # Coerce invalid entries to NaN
+    
+    # Handle missing values if any
+    df = df.dropna(subset=["Vehicles"])
     return df
 
 if train_file:
@@ -31,17 +38,23 @@ if train_file:
     st.subheader("📊 Training Dataset Preview")
     st.dataframe(train_df.head())
 
+    # Plot Traffic Volume by Junction
     st.markdown("### 🚗 Traffic Volume by Junction")
     fig1, ax1 = plt.subplots()
-    sns.boxplot(x="Junction", y="Vehicles", data=train_df, ax=ax1)
+    if "Vehicles" in train_df.columns:  # Ensure 'Vehicles' column exists before plotting
+        sns.boxplot(x="Junction", y="Vehicles", data=train_df, ax=ax1)
+    else:
+        st.error("The 'Vehicles' column is missing in the dataset.")
     st.pyplot(fig1)
 
+    # Plot Average Traffic Volume by Hour
     st.markdown("### 📈 Average Traffic Volume by Hour")
     avg_hourly = train_df.groupby("hour")["Vehicles"].mean()
     fig2, ax2 = plt.subplots()
     avg_hourly.plot(kind="line", ax=ax2)
     st.pyplot(fig2)
 
+    # Plot Holiday vs Non-Holiday Traffic
     st.markdown("### 🔍 Holiday vs Non-Holiday Traffic")
     fig3, ax3 = plt.subplots()
     sns.barplot(x="is_holiday", y="Vehicles", data=train_df, ax=ax3)
