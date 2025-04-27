@@ -23,15 +23,18 @@ def load_data(file):
     df["is_holiday"] = df["DateTime"].dt.date.astype(str).isin([  # Example holiday dates
         "2015-10-02", "2015-12-25", "2016-01-01", "2016-08-15", "2016-10-02"
     ]).astype(int)
-    
-    # Ensure "Vehicles" exists and is numeric
-    if "Vehicles" not in df.columns:
-        raise ValueError("The 'Vehicles' column is missing in the dataset.")
+
+    # Check and print columns if 'Vehicles' is missing
+    if 'Vehicles' not in df.columns:
+        st.error(f"The 'Vehicles' column is missing or misnamed. Here are the available columns: {df.columns}")
+        return df  # Return the dataset to allow inspection in case of missing columns
+
     df["Vehicles"] = pd.to_numeric(df["Vehicles"], errors="coerce")  # Coerce invalid entries to NaN
-    
+
     # Handle missing values if any
     df = df.dropna(subset=["Vehicles"])
     return df
+
 
 if train_file:
     train_df = load_data(train_file)
